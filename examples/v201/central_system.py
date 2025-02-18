@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     import websockets
@@ -25,14 +25,14 @@ class ChargePoint(cp):
     @on(Action.boot_notification)
     def on_boot_notification(self, charging_station, reason, **kwargs):
         return call_result.BootNotification(
-            current_time=datetime.utcnow().isoformat(), interval=10, status="Accepted"
+            current_time=datetime.now(timezone.utc).isoformat(), interval=10, status="Accepted"
         )
 
     @on(Action.heartbeat)
     def on_heartbeat(self):
         print("Got a Heartbeat!")
-        return call_result.HeartbeatPayload(
-            current_time=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+        return call_result.Heartbeat(
+            current_time=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + "Z"
         )
 
 
@@ -41,7 +41,7 @@ async def on_connect(websocket):
     instance and start listening for messages.
     """
     try:
-        requested_protocols = websocket.request_headers["Sec-WebSocket-Protocol"]
+        requested_protocols = websocket.request.headers["Sec-WebSocket-Protocol"]
     except KeyError:
         logging.error("Client hasn't requested any Subprotocol. Closing Connection")
         return await websocket.close()
@@ -53,22 +53,22 @@ async def on_connect(websocket):
         # so we have to manually close the connection.
         logging.warning(
             "Protocols Mismatched | Expected Subprotocols: %s,"
-            " but client supports  %s | Closing connection",
+            " but client supports %s | Closing connection",
             websocket.available_subprotocols,
             requested_protocols,
         )
         return await websocket.close()
 
-    charge_point_id = websocket.path.strip("/")
-    cp = ChargePoint(charge_point_id, websocket)
+    charge_point_id = websocket.request.path.strip("/")
+    charge_point = ChargePoint(charge_point_id, websocket)
 
-    await cp.start()
+    await charge_point.start()
 
 
 async def main():
     #  deepcode ignore BindToAllNetworkInterfaces: <Example Purposes>
     server = await websockets.serve(
-        on_connect, "0.0.0.0", 9000, subprotocols=["ocpp2.0.1"], ping_interval = None
+        on_connect, "0.0.0.0", 9000, subprotocols=["ocpp2.0.1"]
     )
 
     logging.info("Server Started listening to new connections...")
