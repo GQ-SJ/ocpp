@@ -36,15 +36,16 @@ class ChargePoint(cp):
         )
 
 
-async def on_connect(websocket, path):
+async def on_connect(websocket: ServerConnection):
     """For every new charge point that connects, create a ChargePoint
     instance and start listening for messages.
     """
     try:
-        requested_protocols = websocket.request_headers["Sec-WebSocket-Protocol"]
+        requested_protocols = websocket.request.headers["Sec-WebSocket-Protocol"]
     except KeyError:
         logging.error("Client hasn't requested any Subprotocol. Closing Connection")
         return await websocket.close()
+    
     if websocket.subprotocol:
         logging.info("Protocols Matched: %s", websocket.subprotocol)
     else:
@@ -53,16 +54,16 @@ async def on_connect(websocket, path):
         # so we have to manually close the connection.
         logging.warning(
             "Protocols Mismatched | Expected Subprotocols: %s,"
-            " but client supports %s | Closing connection",
+            " but client supports  %s | Closing connection",
             websocket.available_subprotocols,
             requested_protocols,
         )
         return await websocket.close()
 
-    charge_point_id = path.strip("/")
-    charge_point = ChargePoint(charge_point_id, websocket)
+    charge_point_id = websocket.request.path.strip("/")
+    cp = ChargePoint(charge_point_id, websocket)
 
-    await charge_point.start()
+    await cp.start()
 
 
 async def main():
