@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 class ChargePoint(cp):
     @on(Action.boot_notification)
     def on_boot_notification(self, charging_station, reason, **kwargs):
-        return call_result.BootNotificationPayload(
+        return call_result.BootNotification(
             current_time=datetime.utcnow().isoformat(), interval=10, status="Accepted"
         )
 
