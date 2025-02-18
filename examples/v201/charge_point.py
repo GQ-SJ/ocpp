@@ -27,7 +27,7 @@ class ChargePoint(cp):
             await asyncio.sleep(interval)
 
     async def send_boot_notification(self):
-        request = call.BootNotificationPayload(
+        request = call.BootNotification(
             charging_station={"model": "Wallbox XYZ", "vendor_name": "anewone"},
             reason="PowerUp",
         )
